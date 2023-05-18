@@ -1,0 +1,67 @@
+esphome:
+  name: turn-table
+  platform: ESP8266
+  board: d1_mini
+
+wifi:
+  ssid: IOTL
+  password: !secret wifi_password
+  reboot_timeout: 0s
+  ap:
+    ssid: "Remote Node"
+    password: xxxxxxxxx
+captive_portal:  
+
+ota:
+
+stepper:
+  - platform: uln2003
+    id: my_stepper_a
+    pin_a: D0
+    pin_b: D1
+    pin_c: D2
+    pin_d: D3
+    max_speed: 150 steps/s
+    sleep_when_done: true   
+    step_mode: HALF_STEP
+    acceleration: inf
+    deceleration: inf
+
+
+binary_sensor:   
+  - platform: gpio
+    pin:
+      number: D7
+      mode: INPUT_PULLUP
+    id: push_botton    
+    filters:
+      - invert:  
+    on_press:
+      - switch.toggle: ontimeout
+      - delay: 1.6s
+      - if:
+          condition:
+            - for:
+               time: 1.5s
+               condition:
+                 binary_sensor.is_on: push_botton
+          then:
+            - switch.turn_on: restart_unit        
+switch:
+  - platform: template
+    id: ontimeout 
+    optimistic: True
+    restore_state: true
+    on_turn_on:
+     - stepper.set_target:
+        id: my_stepper_a
+        target: 8300    
+    on_turn_off:
+     - stepper.set_target:
+        id: my_stepper_a
+        target: 0  
+
+  - platform: restart
+    name: "Living Room Restart"
+    id: restart_unit
+
